@@ -15,7 +15,29 @@
   </style>
 </head>
 <body>
-  <div id="chat-container" style="display: flex; max-width: 700px;">
+  <div id="auth-container" style="max-width: 400px; margin: 60px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; display: none;">
+    <h2 id="auth-title">Login or Register</h2>
+    <form id="auth-form">
+      <div id="signup-fields" style="display:none;">
+        <input id="signup-email" type="email" placeholder="Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="signup-username" placeholder="Username" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="signup-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="signup-confirm" type="password" placeholder="Confirm Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+      </div>
+      <div id="login-fields">
+        <input id="login-identifier" placeholder="Username or Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="login-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button id="login-btn" type="button">Login</button>
+        <button id="show-signup-btn" type="button">Sign Up</button>
+        <button id="signup-btn" type="button" style="display:none;">Register</button>
+        <button id="show-login-btn" type="button" style="display:none;">Back to Login</button>
+      </div>
+      <div id="auth-error" style="color: red; margin-top: 10px;"></div>
+    </form>
+  </div>
+  <div id="chat-container" style="display: none; flex: 1; max-width: 700px;">
     <div id="user-list" style="width: 150px; margin-right: 20px; background: #f8f8f8; border-radius: 8px; padding: 10px; box-sizing: border-box; min-height: 350px;">
       <h4 style="margin-top:0;">Users</h4>
       <div id="users"></div>
@@ -32,198 +54,319 @@
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
-    const messages = document.getElementById('messages');
-    const form = document.getElementById('message-form');
-    const input = document.getElementById('message-input');
+    // --- AUTH LOGIC ---
+    const authContainer = document.getElementById('auth-container');
+    const chatContainer = document.getElementById('chat-container');
+    const authForm = document.getElementById('auth-form');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const authError = document.getElementById('auth-error');
+    const authUsername = document.getElementById('auth-username');
+    const authPassword = document.getElementById('auth-password');
+    const authTitle = document.getElementById('auth-title');
+    const signupFields = document.getElementById('signup-fields');
+    const loginFields = document.getElementById('login-fields');
+    const showSignupBtn = document.getElementById('show-signup-btn');
+    const showLoginBtn = document.getElementById('show-login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const signupEmail = document.getElementById('signup-email');
+    const signupUsername = document.getElementById('signup-username');
+    const signupPassword = document.getElementById('signup-password');
+    const signupConfirm = document.getElementById('signup-confirm');
+    const loginIdentifier = document.getElementById('login-identifier');
+    const loginPassword = document.getElementById('login-password');
 
-    // Prompt for username
-    let username = '';
-    while (!username) {
-      username = prompt('Enter your username:');
-      if (username) username = username.trim();
+    function showAuth() {
+      authContainer.style.display = '';
+      chatContainer.style.display = 'none';
+    }
+    function showChat() {
+      authContainer.style.display = 'none';
+      chatContainer.style.display = 'flex';
     }
 
-    const typingIndicator = document.createElement('div');
-    typingIndicator.id = 'typing-indicator';
-    typingIndicator.style.fontStyle = 'italic';
-    typingIndicator.style.color = '#888';
-    messages.parentNode.insertBefore(typingIndicator, messages.nextSibling);
+    function showLoginForm() {
+      authTitle.textContent = 'Login';
+      signupFields.style.display = 'none';
+      loginFields.style.display = '';
+      loginBtn.style.display = '';
+      showSignupBtn.style.display = '';
+      signupBtn.style.display = 'none';
+      showLoginBtn.style.display = 'none';
+      authError.textContent = '';
+    }
+    function showSignupForm() {
+      authTitle.textContent = 'Sign Up';
+      signupFields.style.display = '';
+      loginFields.style.display = 'none';
+      loginBtn.style.display = 'none';
+      showSignupBtn.style.display = 'none';
+      signupBtn.style.display = '';
+      showLoginBtn.style.display = '';
+      authError.textContent = '';
+    }
+    showSignupBtn.onclick = showSignupForm;
+    showLoginBtn.onclick = showLoginForm;
 
-    let typing = false;
-    let typingTimeout;
-
-    input.addEventListener('input', function() {
-      if (!typing) {
-        typing = true;
-        socket.emit('typing', username);
-      }
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        typing = false;
-        socket.emit('stop typing', username);
-      }, 1000);
-    });
-
-    // Avatar emojis
-    const avatarEmojis = ['🦁','🐯','🐶','🐱','🐸','🐵','🐼','🐧','🐦','🐤','🦊','🐻','🐨','🐰','🦄','🐮','🐷','🐔','🐙','🦉','🐢','🐍','🐳','🐬','🦋','🐝','🐞','🦀','🦕','🦖'];
-    // Assign a random avatar to the user
-    const avatar = avatarEmojis[Math.floor(Math.random() * avatarEmojis.length)];
-
-    // Generate a unique ID for each message
-    function generateId() {
-      return '_' + Math.random().toString(36).substr(2, 9) + Date.now();
+    function saveSession(token, username, avatar) {
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('username', username);
+      sessionStorage.setItem('avatar', avatar);
+    }
+    function clearSession() {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('username');
+      sessionStorage.removeItem('avatar');
+    }
+    function getSession() {
+      return {
+        token: sessionStorage.getItem('token'),
+        username: sessionStorage.getItem('username'),
+        avatar: sessionStorage.getItem('avatar'),
+      };
     }
 
-    // Track messages in the DOM by ID
-    const messageElements = {};
-
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (input.value) {
-        // Add timestamp in 12-hour format with am/pm
-        const now = new Date();
-        let hours = now.getHours();
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'pm' : 'am';
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        const timestamp = `${hours}:${minutes} ${ampm}`;
-        const id = generateId();
-        socket.emit('chat message', { username, message: input.value, timestamp, avatar, id });
-        input.value = '';
-        typing = false;
-        socket.emit('stop typing', username);
+    async function handleSignup() {
+      authError.textContent = '';
+      const email = signupEmail.value.trim();
+      const username = signupUsername.value.trim();
+      const password = signupPassword.value;
+      const confirmPassword = signupConfirm.value;
+      if (!email || !username || !password || !confirmPassword) {
+        authError.textContent = 'All fields are required.';
+        return;
       }
-    });
-
-    function renderMessage(data) {
-      const item = document.createElement('div');
-      item.id = `msg-${data.id}`;
-      item.style.display = 'flex';
-      item.style.alignItems = 'center';
-      const msgText = document.createElement('span');
-      msgText.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
-      item.appendChild(msgText);
-      // If this is the current user's message, add edit/delete buttons
-      if (data.username === username) {
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.style.marginLeft = '8px';
-        editBtn.onclick = function() {
-          const newText = prompt('Edit your message:', data.message);
-          if (newText !== null && newText.trim() !== '' && newText !== data.message) {
-            socket.emit('edit message', { id: data.id, newText });
-          }
-        };
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.style.marginLeft = '4px';
-        delBtn.onclick = function() {
-          if (confirm('Delete this message?')) {
-            socket.emit('delete message', data.id);
-          }
-        };
-        item.appendChild(editBtn);
-        item.appendChild(delBtn);
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        authError.textContent = 'Invalid email format.';
+        return;
       }
-      messageElements[data.id] = item;
-      return item;
-    }
-
-    socket.on('chat message', function(data) {
-      // Remove old if exists (for edit)
-      if (messageElements[data.id]) {
-        messageElements[data.id].remove();
+      if (password !== confirmPassword) {
+        authError.textContent = 'Passwords do not match.';
+        return;
       }
-      const item = renderMessage(data);
-      messages.appendChild(item);
-      messages.scrollTop = messages.scrollHeight;
-    });
-
-    socket.on('delete message', function(id) {
-      if (messageElements[id]) {
-        messageElements[id].remove();
-        delete messageElements[id];
-      }
-    });
-
-    socket.on('edit message', function({ id, newText }) {
-      if (messageElements[id]) {
-        const msgText = messageElements[id].querySelector('span');
-        if (msgText) {
-          // Only update the message part, keep timestamp/avatar/username
-          const parts = msgText.textContent.split(':');
-          msgText.textContent = parts.slice(0, -1).join(':') + ': ' + newText;
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, username, password, confirmPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          authError.textContent = data.error || 'Error.';
+          return;
         }
+        authError.style.color = 'green';
+        authError.textContent = 'Registration successful! You can now log in.';
+        setTimeout(() => {
+          authError.style.color = 'red';
+          showLoginForm();
+        }, 1200);
+      } catch (err) {
+        authError.textContent = 'Network error.';
       }
-    });
+    }
 
-    // Listen for join/leave notifications
-    socket.on('notification', function(msg) {
-      const item = document.createElement('div');
-      item.textContent = msg;
-      item.style.fontStyle = 'italic';
-      item.style.color = '#888';
-      messages.appendChild(item);
-      messages.scrollTop = messages.scrollHeight;
-    });
-
-    socket.on('typing', function(name) {
-      if (name !== username) {
-        typingIndicator.textContent = `${name} is typing...`;
+    async function handleLogin() {
+      authError.textContent = '';
+      const identifier = loginIdentifier.value.trim();
+      const password = loginPassword.value;
+      if (!identifier || !password) {
+        authError.textContent = 'All fields are required.';
+        return;
       }
-    });
-
-    socket.on('stop typing', function(name) {
-      if (name !== username) {
-        typingIndicator.textContent = '';
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          authError.textContent = data.error || 'Error.';
+          return;
+        }
+        saveSession(data.token, data.username, data.avatar);
+        startChat();
+      } catch (err) {
+        authError.textContent = 'Network error.';
       }
-    });
+    }
 
-    // Display message history
-    socket.on('message history', function(history) {
-      messages.innerHTML = '';
-      Object.keys(messageElements).forEach(id => delete messageElements[id]);
-      history.forEach(function(data) {
+    loginBtn.onclick = handleLogin;
+    signupBtn.onclick = handleSignup;
+
+    // --- CHAT LOGIC ---
+    function startChat() {
+      showChat();
+      const { username, avatar } = getSession();
+      const socket = io();
+      const messages = document.getElementById('messages');
+      const form = document.getElementById('message-form');
+      const input = document.getElementById('message-input');
+
+      // Generate a unique ID for each message
+      function generateId() {
+        return '_' + Math.random().toString(36).substr(2, 9) + Date.now();
+      }
+
+      // Track messages in the DOM by ID
+      const messageElements = {};
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+          // Add timestamp in 12-hour format with am/pm
+          const now = new Date();
+          let hours = now.getHours();
+          const minutes = now.getMinutes().toString().padStart(2, '0');
+          const ampm = hours >= 12 ? 'pm' : 'am';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // the hour '0' should be '12'
+          const timestamp = `${hours}:${minutes} ${ampm}`;
+          const id = generateId();
+          socket.emit('chat message', { username, message: input.value, timestamp, avatar, id });
+          input.value = '';
+          typing = false;
+          socket.emit('stop typing', username);
+        }
+      });
+
+      function renderMessage(data) {
+        const item = document.createElement('div');
+        item.id = `msg-${data.id}`;
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        const msgText = document.createElement('span');
+        msgText.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
+        item.appendChild(msgText);
+        // If this is the current user's message, add edit/delete buttons
+        if (data.username === username) {
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Edit';
+          editBtn.style.marginLeft = '8px';
+          editBtn.onclick = function() {
+            const newText = prompt('Edit your message:', data.message);
+            if (newText !== null && newText.trim() !== '' && newText !== data.message) {
+              socket.emit('edit message', { id: data.id, newText });
+            }
+          };
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.style.marginLeft = '4px';
+          delBtn.onclick = function() {
+            if (confirm('Delete this message?')) {
+              socket.emit('delete message', data.id);
+            }
+          };
+          item.appendChild(editBtn);
+          item.appendChild(delBtn);
+        }
+        messageElements[data.id] = item;
+        return item;
+      }
+
+      socket.on('chat message', function(data) {
+        // Remove old if exists (for edit)
+        if (messageElements[data.id]) {
+          messageElements[data.id].remove();
+        }
         const item = renderMessage(data);
         messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
       });
-      messages.scrollTop = messages.scrollHeight;
-    });
 
-    // Emoji picker logic
-    const emojiPicker = document.getElementById('emoji-picker');
-    const emojis = ['😀','😂','😍','😎','👍','🙏','🎉','😢','😡','🔥','❤️','🥳','😇','🤔','😅','🙌','😜','😏','😭','😬'];
-    emojis.forEach(emoji => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = emoji;
-      btn.style.fontSize = '20px';
-      btn.style.margin = '2px';
-      btn.style.cursor = 'pointer';
-      btn.addEventListener('click', () => {
-        // Insert emoji at cursor position
-        const start = input.selectionStart;
-        const end = input.selectionEnd;
-        const text = input.value;
-        input.value = text.slice(0, start) + emoji + text.slice(end);
-        input.focus();
-        input.selectionStart = input.selectionEnd = start + emoji.length;
+      socket.on('delete message', function(id) {
+        if (messageElements[id]) {
+          messageElements[id].remove();
+          delete messageElements[id];
+        }
       });
-      emojiPicker.appendChild(btn);
-    });
 
-    // User list logic
-    const usersDiv = document.getElementById('users');
-    socket.on('user list', function(userList) {
-      usersDiv.innerHTML = '';
-      userList.forEach(user => {
-        const userItem = document.createElement('div');
-        userItem.textContent = `${user.avatar || '👤'} ${user.username}`;
-        usersDiv.appendChild(userItem);
+      socket.on('edit message', function({ id, newText }) {
+        if (messageElements[id]) {
+          const msgText = messageElements[id].querySelector('span');
+          if (msgText) {
+            // Only update the message part, keep timestamp/avatar/username
+            const parts = msgText.textContent.split(':');
+            msgText.textContent = parts.slice(0, -1).join(':') + ': ' + newText;
+          }
+        }
       });
-    });
+
+      // Listen for join/leave notifications
+      socket.on('notification', function(msg) {
+        const item = document.createElement('div');
+        item.textContent = msg;
+        item.style.fontStyle = 'italic';
+        item.style.color = '#888';
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      });
+
+      socket.on('typing', function(name) {
+        if (name !== username) {
+          typingIndicator.textContent = `${name} is typing...`;
+        }
+      });
+
+      socket.on('stop typing', function(name) {
+        if (name !== username) {
+          typingIndicator.textContent = '';
+        }
+      });
+
+      // Display message history
+      socket.on('message history', function(history) {
+        messages.innerHTML = '';
+        Object.keys(messageElements).forEach(id => delete messageElements[id]);
+        history.forEach(function(data) {
+          const item = renderMessage(data);
+          messages.appendChild(item);
+        });
+        messages.scrollTop = messages.scrollHeight;
+      });
+
+      // Emoji picker logic
+      const emojiPicker = document.getElementById('emoji-picker');
+      const emojis = ['😀','😂','😍','😎','👍','🙏','🎉','😢','😡','🔥','❤️','🥳','😇','🤔','😅','🙌','��','😏','😭','😬'];
+      emojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = emoji;
+        btn.style.fontSize = '20px';
+        btn.style.margin = '2px';
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', () => {
+          // Insert emoji at cursor position
+          const start = input.selectionStart;
+          const end = input.selectionEnd;
+          const text = input.value;
+          input.value = text.slice(0, start) + emoji + text.slice(end);
+          input.focus();
+          input.selectionStart = input.selectionEnd = start + emoji.length;
+        });
+        emojiPicker.appendChild(btn);
+      });
+
+      // User list logic
+      const usersDiv = document.getElementById('users');
+      socket.on('user list', function(userList) {
+        usersDiv.innerHTML = '';
+        userList.forEach(user => {
+          const userItem = document.createElement('div');
+          userItem.textContent = `${user.avatar || '👤'} ${user.username}`;
+          usersDiv.appendChild(userItem);
+        });
+      });
+    }
+
+    // On page load, show auth or chat
+    if (getSession().token && getSession().username && getSession().avatar) {
+      startChat();
+    } else {
+      showLoginForm();
+      showAuth();
+    }
   </script>
 </body>
 </html> 
