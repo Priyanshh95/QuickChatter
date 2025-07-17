@@ -22,6 +22,7 @@
       <input id="message-input" autocomplete="off" placeholder="Type a message..." />
       <button id="send-btn" type="submit">Send</button>
     </form>
+    <div id="emoji-picker" style="margin-top:10px;"></div>
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -114,6 +115,28 @@
         messages.appendChild(item);
       });
       messages.scrollTop = messages.scrollHeight;
+    });
+
+    // Emoji picker logic
+    const emojiPicker = document.getElementById('emoji-picker');
+    const emojis = ['😀','😂','😍','😎','👍','🙏','🎉','😢','😡','🔥','❤️','🥳','😇','🤔','😅','🙌','😜','😏','😭','😬'];
+    emojis.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = emoji;
+      btn.style.fontSize = '20px';
+      btn.style.margin = '2px';
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', () => {
+        // Insert emoji at cursor position
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.slice(0, start) + emoji + text.slice(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+      });
+      emojiPicker.appendChild(btn);
     });
   </script>
 </body>
