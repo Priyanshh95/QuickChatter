@@ -37,6 +37,27 @@
       if (username) username = username.trim();
     }
 
+    const typingIndicator = document.createElement('div');
+    typingIndicator.id = 'typing-indicator';
+    typingIndicator.style.fontStyle = 'italic';
+    typingIndicator.style.color = '#888';
+    messages.parentNode.insertBefore(typingIndicator, messages.nextSibling);
+
+    let typing = false;
+    let typingTimeout;
+
+    input.addEventListener('input', function() {
+      if (!typing) {
+        typing = true;
+        socket.emit('typing', username);
+      }
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        typing = false;
+        socket.emit('stop typing', username);
+      }, 1000);
+    });
+
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       if (input.value) {
@@ -50,6 +71,8 @@
         const timestamp = `${hours}:${minutes} ${ampm}`;
         socket.emit('chat message', { username, message: input.value, timestamp });
         input.value = '';
+        typing = false;
+        socket.emit('stop typing', username);
       }
     });
 
@@ -68,6 +91,18 @@
       item.style.color = '#888';
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
+    });
+
+    socket.on('typing', function(name) {
+      if (name !== username) {
+        typingIndicator.textContent = `${name} is typing...`;
+      }
+    });
+
+    socket.on('stop typing', function(name) {
+      if (name !== username) {
+        typingIndicator.textContent = '';
+      }
     });
   </script>
 </body>
