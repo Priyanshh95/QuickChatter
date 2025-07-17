@@ -26,10 +26,10 @@ io.on('connection', (socket) => {
 
   // Listen for chat messages and broadcast to all clients
   socket.on('chat message', (data) => {
-    // data: { username, message, timestamp }
-    // Store username on socket for disconnect notification
+    // data: { username, message, timestamp, avatar }
     if (!socket.username) {
       socket.username = data.username;
+      socket.avatar = data.avatar;
       io.emit('notification', `${data.username} joined the chat`);
     }
     // Add message to history and keep only last 20

@@ -59,6 +59,11 @@
       }, 1000);
     });
 
+    // Avatar emojis
+    const avatarEmojis = ['🦁','🐯','🐶','🐱','🐸','🐵','🐼','🐧','🐦','🐤','🦊','🐻','🐨','🐰','🦄','🐮','🐷','🐔','🐙','🦉','🐢','🐍','🐳','🐬','🦋','🐝','🐞','🦀','🦕','🦖'];
+    // Assign a random avatar to the user
+    const avatar = avatarEmojis[Math.floor(Math.random() * avatarEmojis.length)];
+
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       if (input.value) {
@@ -70,7 +75,7 @@
         hours = hours % 12;
         hours = hours ? hours : 12; // the hour '0' should be '12'
         const timestamp = `${hours}:${minutes} ${ampm}`;
-        socket.emit('chat message', { username, message: input.value, timestamp });
+        socket.emit('chat message', { username, message: input.value, timestamp, avatar });
         input.value = '';
         typing = false;
         socket.emit('stop typing', username);
@@ -79,7 +84,8 @@
 
     socket.on('chat message', function(data) {
       const item = document.createElement('div');
-      item.textContent = `[${data.timestamp}] ${data.username}: ${data.message}`;
+      // Show avatar before username
+      item.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
     });
@@ -111,7 +117,7 @@
       messages.innerHTML = '';
       history.forEach(function(data) {
         const item = document.createElement('div');
-        item.textContent = `[${data.timestamp}] ${data.username}: ${data.message}`;
+        item.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
         messages.appendChild(item);
       });
       messages.scrollTop = messages.scrollHeight;
