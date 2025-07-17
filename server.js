@@ -13,6 +13,9 @@ const io = new Server(server);
 // Store last 20 messages
 const messageHistory = [];
 
+// Track connected users
+let users = [];
+
 // Serve a simple message at root
 app.get('/', (req, res) => {
   res.send('Server is running!');
@@ -21,15 +24,14 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  // Send message history to the newly connected user
-  socket.emit('message history', messageHistory);
-
-  // Listen for chat messages and broadcast to all clients
+  // Prompt for username and avatar on first message
   socket.on('chat message', (data) => {
     // data: { username, message, timestamp, avatar }
     if (!socket.username) {
       socket.username = data.username;
       socket.avatar = data.avatar;
+      users.push({ id: socket.id, username: data.username, avatar: data.avatar });
+      io.emit('user list', users.map(u => ({ username: u.username, avatar: u.avatar })));
       io.emit('notification', `${data.username} joined the chat`);
     }
     // Add message to history and keep only last 20
@@ -48,6 +50,8 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (socket.username) {
+      users = users.filter(u => u.id !== socket.id);
+      io.emit('user list', users.map(u => ({ username: u.username, avatar: u.avatar })));
       io.emit('notification', `${socket.username} left the chat`);
     }
     console.log('User disconnected:', socket.id);
