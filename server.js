@@ -19,8 +19,9 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   // Listen for chat messages and broadcast to all clients
-  socket.on('chat message', (msg) => {
-    io.emit('chat message', msg);
+  socket.on('chat message', (data) => {
+    // data: { username, message }
+    io.emit('chat message', data);
   });
 
   socket.on('disconnect', () => {
