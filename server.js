@@ -25,6 +25,9 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  // Send message history to the newly connected user
+  socket.emit('message history', messageHistory);
+
   // Prompt for username and avatar on first message
   socket.on('chat message', (data) => {
     // data: { username, message, timestamp, avatar, id }
