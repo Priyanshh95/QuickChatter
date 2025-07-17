@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 
@@ -21,7 +22,17 @@ const messageHistory = [];
 let users = [];
 
 // In-memory user store: { username: { email, password, avatar } }
-const usersDB = {};
+const USERS_FILE = 'users.json';
+// Load users from file if exists
+let usersDB = {};
+if (fs.existsSync(USERS_FILE)) {
+  try {
+    usersDB = JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+  } catch (e) {
+    console.error('Failed to load users.json:', e);
+    usersDB = {};
+  }
+}
 // In-memory session store: { token: username }
 const sessions = {};
 
@@ -36,6 +47,8 @@ app.post('/register', (req, res) => {
   const avatarEmojis = ['🦁','🐯','🐶','🐱','🐸','🐵','🐼','🐧','🐦','🐤','🦊','🐻','🐨','🐰','🦄','🐮','🐷','🐔','🐙','🦉','🐢','🐍','🐳','🐬','🦋','🐝','🐞','🦀','🦕','🦖'];
   const avatar = avatarEmojis[Math.floor(Math.random() * avatarEmojis.length)];
   usersDB[username] = { email, password, avatar };
+  // Save users to file
+  fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2));
   res.json({ success: true });
 });
 

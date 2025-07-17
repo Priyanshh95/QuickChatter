@@ -7,18 +7,67 @@
   <style>
     body {
       font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+      background: #f6f7fb;
       margin: 0;
       padding: 0;
       min-height: 100vh;
+      color: #222;
+    }
+    header {
+      width: 100%;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 0 0 0;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+    }
+    .logo {
+      font-weight: 600;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      color: #3b3b3b;
+      text-decoration: none;
+    }
+    nav {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-btn {
+      background: none;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 6px 16px;
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.15s, border 0.15s;
+    }
+    .nav-btn:hover {
+      background: #f3f4f6;
+      border-color: #cbd5e1;
     }
     #auth-container, #chat-container { box-sizing: border-box; }
     #auth-container {
       max-width: 400px;
       margin: 40px auto;
       background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 4px 24px rgba(60, 72, 100, 0.10);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(60, 72, 100, 0.07);
       padding: 32px 28px 24px 28px;
       transition: box-shadow 0.2s;
     }
@@ -35,7 +84,7 @@
       font-size: 1rem;
       margin-bottom: 12px;
       width: 100%;
-      background: #f1f5f9;
+      background: #f8fafc;
       transition: border 0.2s;
     }
     #auth-form input:focus {
@@ -44,7 +93,7 @@
       background: #fff;
     }
     #auth-form button {
-      background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+      background: #6366f1;
       color: #fff;
       border: none;
       border-radius: 6px;
@@ -52,12 +101,12 @@
       font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+      box-shadow: 0 2px 8px rgba(99,102,241,0.06);
       transition: background 0.2s, box-shadow 0.2s;
     }
     #auth-form button:hover {
-      background: linear-gradient(90deg, #4f46e5 0%, #2563eb 100%);
-      box-shadow: 0 4px 16px rgba(99,102,241,0.13);
+      background: #4f46e5;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.10);
     }
     #auth-error {
       color: #e11d48;
@@ -71,8 +120,8 @@
       max-width: 900px;
       margin: 32px auto;
       background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 4px 24px rgba(60, 72, 100, 0.10);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(60, 72, 100, 0.07);
       padding: 0;
       min-height: 540px;
       overflow: hidden;
@@ -86,13 +135,13 @@
       width: 200px;
       min-width: 120px;
       margin: 0;
-      background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
-      border-radius: 18px 0 0 18px;
+      background: #f8fafc;
+      border-radius: 8px 0 0 8px;
       padding: 18px 10px 10px 18px;
       box-sizing: border-box;
       min-height: 350px;
-      border-right: 1px solid #e0e7ef;
-      box-shadow: 2px 0 8px rgba(99,102,241,0.04);
+      border-right: 1px solid #e5e7eb;
+      box-shadow: 2px 0 8px rgba(99,102,241,0.02);
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -122,28 +171,31 @@
       display: flex;
       flex-direction: column;
       padding: 28px 24px 18px 24px;
+      position: relative;
+      min-height: 400px;
     }
     #main-chat h2 {
       margin-top: 0;
       margin-bottom: 12px;
       color: #6366f1;
       letter-spacing: 1px;
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 600;
       text-align: left;
     }
     #messages {
       flex: 1;
-      height: 320px;
+      height: auto;
       overflow-y: auto;
-      border: 1.5px solid #e0e7ef;
-      border-radius: 8px;
+      border: 1.2px solid #e5e7eb;
+      border-radius: 6px;
       padding: 14px;
-      margin-bottom: 14px;
+      margin-bottom: 0;
       background: #f8fafc;
       font-size: 1.08rem;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.04);
+      box-shadow: 0 2px 8px rgba(99,102,241,0.02);
       transition: border 0.2s;
+      margin-bottom: 70px; /* space for input */
     }
     #messages div {
       margin-bottom: 8px;
@@ -154,44 +206,73 @@
     #message-form {
       display: flex;
       gap: 8px;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      padding: 12px 0 12px 0;
+      border-top: 1px solid #e5e7eb;
+      z-index: 2;
     }
     #message-input {
       flex: 1;
       padding: 12px;
-      border: 1.5px solid #cbd5e1;
+      border: 1.2px solid #cbd5e1;
       border-radius: 6px;
       font-size: 1.08rem;
-      background: #f1f5f9;
+      background: #f8fafc;
       transition: border 0.2s;
     }
     #message-input:focus {
-      border: 1.5px solid #6366f1;
+      border: 1.2px solid #6366f1;
       background: #fff;
       outline: none;
     }
     #send-btn {
       padding: 12px 24px;
       border: none;
-      background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+      background: #6366f1;
       color: #fff;
       border-radius: 6px;
       font-size: 1.08rem;
       font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+      box-shadow: 0 2px 8px rgba(99,102,241,0.06);
       transition: background 0.2s, box-shadow 0.2s;
     }
     #send-btn:hover {
-      background: linear-gradient(90deg, #4f46e5 0%, #2563eb 100%);
-      box-shadow: 0 4px 16px rgba(99,102,241,0.13);
+      background: #4f46e5;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.10);
     }
-    #emoji-picker {
+    #emoji-toggle {
+      margin-left: 6px;
+      font-size: 1.3rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #6366f1;
+      transition: color 0.2s;
+    }
+    #emoji-toggle:hover {
+      color: #4f46e5;
+    }
+    #emoji-panel {
       margin-top: 10px;
       display: flex;
       flex-wrap: wrap;
       gap: 2px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 16px rgba(60,72,100,0.10);
+      border-radius: 10px;
+      padding: 10px 8px 6px 8px;
+      max-width: 320px;
+      min-width: 180px;
+      position: absolute;
+      z-index: 10;
     }
-    #emoji-picker button {
+    #emoji-panel button {
       font-size: 22px;
       margin: 2px;
       cursor: pointer;
@@ -201,7 +282,7 @@
       transition: background 0.2s;
       padding: 2px 4px;
     }
-    #emoji-picker button:hover {
+    #emoji-panel button:hover {
       background: #e0e7ff;
     }
     .edit-btn, .delete-btn {
@@ -222,7 +303,7 @@
     @media (max-width: 900px) {
       #chat-container { max-width: 100vw; margin: 0; border-radius: 0; box-shadow: none; min-height: 100vh; }
       .chat-inner { flex-direction: column; }
-      #user-list { width: 100%; min-width: 0; border-radius: 18px 18px 0 0; border-right: none; border-bottom: 1px solid #eee; min-height: 0; }
+      #user-list { width: 100%; min-width: 0; border-radius: 8px 8px 0 0; border-right: none; border-bottom: 1px solid #eee; min-height: 0; }
       #main-chat { padding: 14px 8px 10px 8px; }
       #messages { height: 180px; font-size: 0.98rem; }
       #message-input, #send-btn { font-size: 1rem; }
@@ -233,24 +314,35 @@
       #main-chat { padding: 5px; }
       #messages { height: 120px; font-size: 0.93rem; }
       #user-list { font-size: 0.95rem; padding: 6px; }
-      #emoji-picker button { font-size: 18px; }
-      #main-chat h2 { font-size: 1.3rem; }
+      #emoji-panel button { font-size: 18px; }
+      #main-chat h2 { font-size: 1.1rem; }
     }
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-inner">
+      <a href="#" class="logo">QuickChatter</a>
+      <nav>
+        <button class="nav-btn" id="home-btn" type="button">Home</button>
+        <button class="nav-btn" id="signin-btn" type="button">Sign In</button>
+        <button class="nav-btn" id="signup-btn-nav" type="button">Sign Up</button>
+        <button class="nav-btn" id="logout-btn" type="button" style="display:none;">Logout</button>
+      </nav>
+    </div>
+  </header>
   <div id="auth-container" style="max-width: 400px; margin: 60px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; display: none;">
     <h2 id="auth-title">Login or Register</h2>
-    <form id="auth-form">
+    <form id="auth-form" autocomplete="off">
       <div id="signup-fields" style="display:none;">
-        <input id="signup-email" type="email" placeholder="Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
-        <input id="signup-username" placeholder="Username" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
-        <input id="signup-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
-        <input id="signup-confirm" type="password" placeholder="Confirm Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="signup-email" name="signup-email" type="email" placeholder="Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="signup-username" name="signup-username" placeholder="Username" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="signup-password" name="signup-new-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="signup-confirm" name="signup-confirm-password" type="password" placeholder="Confirm Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
       </div>
       <div id="login-fields">
-        <input id="login-identifier" placeholder="Username or Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
-        <input id="login-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+        <input id="login-identifier" name="login-identifier" placeholder="Username or Gmail" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="login-password" name="login-current-password" type="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px; padding: 8px;" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
       </div>
       <div style="display: flex; gap: 10px;">
         <button id="login-btn" type="button">Login</button>
@@ -271,7 +363,7 @@
         <h2 style="margin-top:0;">QuickChatter</h2>
         <div id="messages"></div>
         <form id="message-form">
-          <input id="message-input" autocomplete="off" placeholder="Type a message..." />
+          <input id="message-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type a message..." />
           <button id="emoji-toggle" type="button" aria-label="Show emojis" style="margin-left:6px; font-size:1.3rem; background:none; border:none; cursor:pointer;">😊</button>
           <button id="send-btn" type="submit">Send</button>
         </form>
@@ -306,10 +398,12 @@
     function showAuth() {
       authContainer.style.display = '';
       chatContainer.style.display = 'none';
+      updateNav();
     }
     function showChat() {
       authContainer.style.display = 'none';
       chatContainer.style.display = 'flex';
+      updateNav();
     }
 
     function showLoginForm() {
@@ -423,10 +517,14 @@
     signupBtn.onclick = handleSignup;
 
     // --- CHAT LOGIC ---
+    let socket = null;
+    let listenersSet = false;
     function startChat() {
       showChat();
       const { username, avatar } = getSession();
-      const socket = io();
+      if (!socket) {
+        socket = io();
+      }
       const messages = document.getElementById('messages');
       const form = document.getElementById('message-form');
       const input = document.getElementById('message-input');
@@ -494,6 +592,8 @@
         return item;
       }
 
+      if (!listenersSet) {
+        listenersSet = true;
       socket.on('chat message', function(data) {
         // Remove old if exists (for edit)
         if (messageElements[data.id]) {
@@ -616,11 +716,53 @@
           usersDiv.appendChild(userItem);
         });
       });
+      } // <-- Properly close the if (!listenersSet) block
     }
+
+    // Header navigation logic
+    const homeBtn = document.getElementById('home-btn');
+    const signinBtn = document.getElementById('signin-btn');
+    const signupBtnNav = document.getElementById('signup-btn-nav');
+    const logoutBtn = document.getElementById('logout-btn');
+    function updateNav() {
+      const session = getSession();
+      if (session.token && session.username && session.avatar) {
+        signinBtn.style.display = 'none';
+        signupBtnNav.style.display = 'none';
+        logoutBtn.style.display = '';
+      } else {
+        signinBtn.style.display = '';
+        signupBtnNav.style.display = '';
+        logoutBtn.style.display = 'none';
+      }
+    }
+    homeBtn.onclick = () => {
+      if (getSession().token) {
+        startChat();
+      } else {
+        showLoginForm();
+        showAuth();
+      }
+    };
+    signinBtn.onclick = () => {
+      showLoginForm();
+      showAuth();
+    };
+    signupBtnNav.onclick = () => {
+      showSignupForm();
+      showAuth();
+    };
+    logoutBtn.onclick = () => {
+      clearSession();
+      updateNav();
+      showLoginForm();
+      showAuth();
+    };
 
     // On page load, show auth or chat
     if (getSession().token && getSession().username && getSession().avatar) {
       startChat();
+      updateNav();
     } else {
       showLoginForm();
       showAuth();
