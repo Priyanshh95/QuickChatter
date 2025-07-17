@@ -21,10 +21,18 @@ io.on('connection', (socket) => {
   // Listen for chat messages and broadcast to all clients
   socket.on('chat message', (data) => {
     // data: { username, message }
+    // Store username on socket for disconnect notification
+    if (!socket.username) {
+      socket.username = data.username;
+      io.emit('notification', `${data.username} joined the chat`);
+    }
     io.emit('chat message', data);
   });
 
   socket.on('disconnect', () => {
+    if (socket.username) {
+      io.emit('notification', `${socket.username} left the chat`);
+    }
     console.log('User disconnected:', socket.id);
   });
 });

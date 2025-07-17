@@ -51,6 +51,16 @@
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
     });
+
+    // Listen for join/leave notifications
+    socket.on('notification', function(msg) {
+      const item = document.createElement('div');
+      item.textContent = msg;
+      item.style.fontStyle = 'italic';
+      item.style.color = '#888';
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+    });
   </script>
 </body>
 </html> 
