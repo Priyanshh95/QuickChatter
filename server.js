@@ -20,7 +20,7 @@ io.on('connection', (socket) => {
 
   // Listen for chat messages and broadcast to all clients
   socket.on('chat message', (data) => {
-    // data: { username, message }
+    // data: { username, message, timestamp }
     // Store username on socket for disconnect notification
     if (!socket.username) {
       socket.username = data.username;
