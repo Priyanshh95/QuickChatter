@@ -10,6 +10,9 @@ app.use(express.static('public'));
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Store last 20 messages
+const messageHistory = [];
+
 // Serve a simple message at root
 app.get('/', (req, res) => {
   res.send('Server is running!');
@@ -17,6 +20,9 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
+
+  // Send message history to the newly connected user
+  socket.emit('message history', messageHistory);
 
   // Listen for chat messages and broadcast to all clients
   socket.on('chat message', (data) => {
@@ -26,6 +32,9 @@ io.on('connection', (socket) => {
       socket.username = data.username;
       io.emit('notification', `${data.username} joined the chat`);
     }
+    // Add message to history and keep only last 20
+    messageHistory.push(data);
+    if (messageHistory.length > 20) messageHistory.shift();
     io.emit('chat message', data);
   });
 

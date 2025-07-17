@@ -104,6 +104,17 @@
         typingIndicator.textContent = '';
       }
     });
+
+    // Display message history
+    socket.on('message history', function(history) {
+      messages.innerHTML = '';
+      history.forEach(function(data) {
+        const item = document.createElement('div');
+        item.textContent = `[${data.timestamp}] ${data.username}: ${data.message}`;
+        messages.appendChild(item);
+      });
+      messages.scrollTop = messages.scrollHeight;
+    });
   </script>
 </body>
 </html> 
