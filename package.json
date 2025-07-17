@@ -1,0 +1,24 @@
+{
+  "name": "quickchatter",
+  "version": "1.0.0",
+  "description": "A full-stack real-time chat app using Socket.IO with instant messaging and live communication support.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Priyanshh95/QuickChatter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Priyanshh95/QuickChatter/issues"
+  },
+  "homepage": "https://github.com/Priyanshh95/QuickChatter#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}
