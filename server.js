@@ -17,6 +17,12 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
+
+  // Listen for chat messages and broadcast to all clients
+  socket.on('chat message', (msg) => {
+    io.emit('chat message', msg);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -24,5 +30,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}/`);
 }); 
