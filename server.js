@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 
@@ -26,7 +27,7 @@ io.on('connection', (socket) => {
 
   // Prompt for username and avatar on first message
   socket.on('chat message', (data) => {
-    // data: { username, message, timestamp, avatar }
+    // data: { username, message, timestamp, avatar, id }
     if (!socket.username) {
       socket.username = data.username;
       socket.avatar = data.avatar;
@@ -38,6 +39,24 @@ io.on('connection', (socket) => {
     messageHistory.push(data);
     if (messageHistory.length > 20) messageHistory.shift();
     io.emit('chat message', data);
+  });
+
+  socket.on('delete message', (id) => {
+    // Remove from history
+    const idx = messageHistory.findIndex(m => m.id === id && m.username === socket.username);
+    if (idx !== -1) {
+      messageHistory.splice(idx, 1);
+      io.emit('delete message', id);
+    }
+  });
+
+  socket.on('edit message', ({ id, newText }) => {
+    // Edit in history
+    const msg = messageHistory.find(m => m.id === id && m.username === socket.username);
+    if (msg) {
+      msg.message = newText;
+      io.emit('edit message', { id, newText });
+    }
   });
 
   // Typing indicator events

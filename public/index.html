@@ -70,6 +70,14 @@
     // Assign a random avatar to the user
     const avatar = avatarEmojis[Math.floor(Math.random() * avatarEmojis.length)];
 
+    // Generate a unique ID for each message
+    function generateId() {
+      return '_' + Math.random().toString(36).substr(2, 9) + Date.now();
+    }
+
+    // Track messages in the DOM by ID
+    const messageElements = {};
+
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       if (input.value) {
@@ -81,19 +89,74 @@
         hours = hours % 12;
         hours = hours ? hours : 12; // the hour '0' should be '12'
         const timestamp = `${hours}:${minutes} ${ampm}`;
-        socket.emit('chat message', { username, message: input.value, timestamp, avatar });
+        const id = generateId();
+        socket.emit('chat message', { username, message: input.value, timestamp, avatar, id });
         input.value = '';
         typing = false;
         socket.emit('stop typing', username);
       }
     });
 
-    socket.on('chat message', function(data) {
+    function renderMessage(data) {
       const item = document.createElement('div');
-      // Show avatar before username
-      item.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
+      item.id = `msg-${data.id}`;
+      item.style.display = 'flex';
+      item.style.alignItems = 'center';
+      const msgText = document.createElement('span');
+      msgText.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
+      item.appendChild(msgText);
+      // If this is the current user's message, add edit/delete buttons
+      if (data.username === username) {
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.style.marginLeft = '8px';
+        editBtn.onclick = function() {
+          const newText = prompt('Edit your message:', data.message);
+          if (newText !== null && newText.trim() !== '' && newText !== data.message) {
+            socket.emit('edit message', { id: data.id, newText });
+          }
+        };
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.style.marginLeft = '4px';
+        delBtn.onclick = function() {
+          if (confirm('Delete this message?')) {
+            socket.emit('delete message', data.id);
+          }
+        };
+        item.appendChild(editBtn);
+        item.appendChild(delBtn);
+      }
+      messageElements[data.id] = item;
+      return item;
+    }
+
+    socket.on('chat message', function(data) {
+      // Remove old if exists (for edit)
+      if (messageElements[data.id]) {
+        messageElements[data.id].remove();
+      }
+      const item = renderMessage(data);
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
+    });
+
+    socket.on('delete message', function(id) {
+      if (messageElements[id]) {
+        messageElements[id].remove();
+        delete messageElements[id];
+      }
+    });
+
+    socket.on('edit message', function({ id, newText }) {
+      if (messageElements[id]) {
+        const msgText = messageElements[id].querySelector('span');
+        if (msgText) {
+          // Only update the message part, keep timestamp/avatar/username
+          const parts = msgText.textContent.split(':');
+          msgText.textContent = parts.slice(0, -1).join(':') + ': ' + newText;
+        }
+      }
     });
 
     // Listen for join/leave notifications
@@ -121,9 +184,9 @@
     // Display message history
     socket.on('message history', function(history) {
       messages.innerHTML = '';
+      Object.keys(messageElements).forEach(id => delete messageElements[id]);
       history.forEach(function(data) {
-        const item = document.createElement('div');
-        item.textContent = `[${data.timestamp}] ${data.avatar || '👤'} ${data.username}: ${data.message}`;
+        const item = renderMessage(data);
         messages.appendChild(item);
       });
       messages.scrollTop = messages.scrollHeight;
