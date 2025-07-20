@@ -20,9 +20,6 @@ A modern, real-time chat application built with Node.js, Express, and Socket.IO,
 - **Persistent user accounts** (stored in `users.json`)
 - **In-memory message storage** (reset on server restart)
 
-## Screenshots
-
-> Add your own screenshots here!
 
 ## Getting Started
 
