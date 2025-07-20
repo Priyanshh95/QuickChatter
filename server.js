@@ -74,6 +74,17 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  // New: Register user event
+  socket.on('register user', ({ username, avatar }) => {
+    socket.username = username;
+    socket.avatar = avatar;
+    if (!users.some(u => u.id === socket.id)) {
+      users.push({ id: socket.id, username, avatar });
+      io.emit('user list', users.map(u => ({ username: u.username, avatar: u.avatar })));
+      io.emit('notification', `${username} joined the chat`);
+    }
+  });
+
   // Send message history to the newly connected user
   socket.emit('message history', messageHistory);
 

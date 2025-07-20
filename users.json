@@ -3,5 +3,20 @@
     "email": "priyanshub243@gmail.com",
     "password": "123456",
     "avatar": "🐶"
+  },
+  "Siddhi": {
+    "email": "siddhisinghal5@gmail.com",
+    "password": "123456",
+    "avatar": "🐧"
+  },
+  "Gaurav": {
+    "email": "gaurav@gmail.com",
+    "password": "123456",
+    "avatar": "🐷"
+  },
+  "Satyam": {
+    "email": "satyam@gmail.com",
+    "password": "123456",
+    "avatar": "🐸"
   }
 }
