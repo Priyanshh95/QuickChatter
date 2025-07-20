@@ -75,5 +75,3 @@ node server.js
 ## Customization
 - You can change the emoji set, UI colors, or add new features easily in `public/index.html` and `server.js`.
 
-## License
-MIT
