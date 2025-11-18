@@ -18,5 +18,30 @@
     "email": "satyam@gmail.com",
     "password": "123456",
     "avatar": "🐸"
+  },
+  "priyanshh95": {
+    "email": "priyanshu@gmail.com",
+    "password": "1234",
+    "avatar": "🐮"
+  },
+  "Ishika": {
+    "email": "Ishika@gmail.com",
+    "password": "123ishika",
+    "avatar": "🐝"
+  },
+  "prachi": {
+    "email": "Prachi@gmail.com",
+    "password": "123prachi",
+    "avatar": "🐔"
+  },
+  "Bansal": {
+    "email": "Bansal@gmail.com",
+    "password": "123bansal",
+    "avatar": "🐼"
+  },
+  "apoorva": {
+    "email": "Apoorva@gmail.com",
+    "password": "123apoorva",
+    "avatar": "🐞"
   }
 }
