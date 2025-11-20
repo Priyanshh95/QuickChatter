@@ -5,6 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
@@ -36,6 +38,26 @@ if (fs.existsSync(USERS_FILE)) {
 // In-memory session store: { token: username }
 const sessions = {};
 
+// Helper: load users
+function loadUsers() {
+    const usersPath = path.join(__dirname, 'users.json');
+    try {
+        if (!fs.existsSync(usersPath)) {
+            fs.writeFileSync(usersPath, JSON.stringify([]));
+        }
+        return JSON.parse(fs.readFileSync(usersPath, 'utf8') || '[]');
+    } catch (e) {
+        console.error('Failed to load users.json', e);
+        return [];
+    }
+}
+
+// Helper: save users
+function saveUsers(users) {
+    const usersPath = path.join(__dirname, 'users.json');
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+}
+
 // Register endpoint
 app.post('/register', (req, res) => {
   const { email, username, password, confirmPassword } = req.body;
@@ -52,6 +74,40 @@ app.post('/register', (req, res) => {
   res.json({ success: true });
 });
 
+// Example: Signup route — hash password before saving
+app.post('/signup', express.urlencoded({ extended: true }), (req, res) => {
+    const { username, email, password } = req.body || {};
+
+    // Basic validation
+    if (!username || !email || !password) {
+        return res.status(400).send('Missing fields');
+    }
+
+    const users = loadUsers();
+
+    if (users.find(u => u.username === username || u.email === email)) {
+        return res.status(409).send('User already exists');
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashed = bcrypt.hashSync(password, saltRounds);
+
+    const newUser = {
+        id: Date.now(),
+        username,
+        email,
+        passwordHash: hashed,
+        // do not store plaintext password
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+
+    // Respond without sensitive data
+    res.status(201).send({ id: newUser.id, username: newUser.username });
+});
+
 // Login endpoint
 app.post('/login', (req, res) => {
   const { identifier, password } = req.body; // identifier can be username or email
@@ -66,10 +122,41 @@ app.post('/login', (req, res) => {
   res.json({ success: true, token, username, avatar: user.avatar });
 });
 
+// Example: Login route — compare hashed password
+app.post('/login', express.urlencoded({ extended: true }), (req, res) => {
+    const { identifier, password } = req.body || {}; // identifier may be username or email
+    if (!identifier || !password) {
+        return res.status(400).send('Missing fields');
+    }
+
+    const users = loadUsers();
+    const user = users.find(u => u.username === identifier || u.email === identifier);
+    if (!user) return res.status(401).send('Invalid credentials');
+
+    const ok = bcrypt.compareSync(password, user.passwordHash || '');
+    if (!ok) return res.status(401).send('Invalid credentials');
+
+    // Example: set a minimal session token or respond success
+    // (keep using your existing session/sessionStorage flow; do not return password)
+    res.send({ id: user.id, username: user.username });
+});
+
 // Serve a simple message at root
 app.get('/', (req, res) => {
   res.send('Server is running!');
 });
+
+const MAX_MESSAGE_LENGTH = 1000;
+
+function escapeHtml(str = '') {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\//g, '&#x2F;');
+}
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -138,9 +225,32 @@ io.on('connection', (socket) => {
     }
     console.log('User disconnected:', socket.id);
   });
+
+  socket.on('sendMessage', (msg) => {
+    const text = (msg && msg.text) ? String(msg.text).trim() : '';
+    if (!text) return;
+    if (text.length > MAX_MESSAGE_LENGTH) {
+        // optionally notify sender about rejection
+        socket.emit('messageError', { reason: 'Message too long' });
+        return;
+    }
+
+    const safeText = escapeHtml(text);
+
+    const message = {
+        id: Date.now(),
+        user: msg.user,
+        text: safeText,
+        ts: Date.now(),
+        // ...other fields...
+    };
+
+    // store/broadcast the sanitized message
+    io.emit('message', message);
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}/`);
-}); 
+});

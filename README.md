@@ -36,6 +36,10 @@ A modern, real-time chat application built with Node.js, Express, and Socket.IO,
    ```sh
    npm install
    ```
+   - For security features:
+   ```sh
+   npm install bcryptjs
+   ```
 
 ### Running the App
 ```sh
@@ -63,6 +67,11 @@ node server.js
 - **Storage:**
   - User accounts: `users.json` (local file)
   - Messages: In-memory (not persistent)
+
+## Security improvements added
+- Passwords are now hashed with bcrypt (via bcryptjs) before being saved to users.json.
+- Basic input validation added to auth endpoints.
+- Messages are sanitized/escaped on the server and rendered as plain text on the client to prevent XSS; a maximum message length is enforced.
 
 ## Notes
 - **No database required** — user data is stored in a local file
