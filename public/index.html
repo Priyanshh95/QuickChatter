@@ -555,9 +555,14 @@
       showChat();
       const { username, avatar } = getSession();
       if (!socket) {
-        socket = io();
-        // Register user immediately after connecting
-        socket.emit('register user', { username, avatar });
+        // Authenticate the socket with the JWT from login
+        socket = io({ auth: { token: getSession().token } });
+        socket.on('connect_error', (err) => {
+          // Token missing/invalid/expired — force a fresh login
+          alert('Your session has expired. Please log in again.');
+          clearSession();
+          location.reload();
+        });
       }
       const messages = document.getElementById('messages');
       const form = document.getElementById('message-form');

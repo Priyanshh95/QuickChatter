@@ -1,104 +1,95 @@
-// Socket.IO event handlers.
-//
-// NOTE: presence and message history are still kept in memory here, and
-// sockets are not yet authenticated. Database-backed message persistence
-// (Commit 5) and JWT-authenticated sockets + real presence (Commit 6)
-// build on top of this structure. This commit only moves the existing
-// behavior into a module — it is intentionally behavior-preserving.
+const socketAuth = require('./auth');
+
+// NOTE: message history is still kept in memory here; MongoDB-backed
+// persistence + pagination arrives in the next commit. Identity and presence
+// are now authoritative (derived from the authenticated socket.user).
 
 const MAX_MESSAGE_LENGTH = 1000;
 
-function escapeHtml(str = '') {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/\//g, '&#x2F;');
-}
-
 function registerSocketHandlers(io) {
-  // Last 20 messages, replayed to newly-connected clients
+  // Reject unauthenticated connections at the handshake.
+  io.use(socketAuth);
+
+  // Last 20 messages, replayed to newly-connected clients.
   const messageHistory = [];
-  // Currently connected users
-  let users = [];
+
+  // Presence: username -> { username, avatar, sockets: Set<socketId> }
+  // A Set of socket ids lets the same user have multiple tabs/devices without
+  // duplicate entries or premature "left the chat" notifications.
+  const online = new Map();
+
+  const onlineList = () =>
+    [...online.values()].map((u) => ({ username: u.username, avatar: u.avatar }));
 
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    const { username, avatar } = socket.user;
 
-    socket.on('register user', ({ username, avatar }) => {
-      socket.username = username;
-      socket.avatar = avatar;
-      if (!users.some((u) => u.id === socket.id)) {
-        users.push({ id: socket.id, username, avatar });
-        io.emit('user list', users.map((u) => ({ username: u.username, avatar: u.avatar })));
-        io.emit('notification', `${username} joined the chat`);
-      }
-    });
+    // --- Presence: register this connection ---
+    const existing = online.get(username);
+    if (existing) {
+      existing.sockets.add(socket.id);
+    } else {
+      online.set(username, { username, avatar, sockets: new Set([socket.id]) });
+      io.emit('notification', `${username} joined the chat`);
+    }
+    io.emit('user list', onlineList());
 
-    // Replay history to the newly connected user
+    // Replay recent history to the newly connected client.
     socket.emit('message history', messageHistory);
 
+    // --- Messaging (identity is trusted, never taken from the payload) ---
     socket.on('chat message', (data) => {
-      // data: { username, message, timestamp, avatar, id }
-      if (!socket.username) {
-        socket.username = data.username;
-        socket.avatar = data.avatar;
-        users.push({ id: socket.id, username: data.username, avatar: data.avatar });
-        io.emit('user list', users.map((u) => ({ username: u.username, avatar: u.avatar })));
-        io.emit('notification', `${data.username} joined the chat`);
+      const text = typeof data?.message === 'string' ? data.message : '';
+      if (!text.trim()) return;
+      if (text.length > MAX_MESSAGE_LENGTH) {
+        socket.emit('message error', { reason: 'Message too long' });
+        return;
       }
-      messageHistory.push(data);
+
+      const message = {
+        id: data?.id,
+        username, // from JWT, not the client payload
+        avatar,
+        message: text,
+        timestamp: data?.timestamp,
+      };
+      messageHistory.push(message);
       if (messageHistory.length > 20) messageHistory.shift();
-      io.emit('chat message', data);
+      io.emit('chat message', message);
     });
 
-    socket.on('delete message', (id) => {
-      const idx = messageHistory.findIndex((m) => m.id === id && m.username === socket.username);
-      if (idx !== -1) {
-        messageHistory.splice(idx, 1);
-        io.emit('delete message', id);
-      }
-    });
-
-    socket.on('edit message', ({ id, newText }) => {
-      const msg = messageHistory.find((m) => m.id === id && m.username === socket.username);
+    socket.on('edit message', ({ id, newText } = {}) => {
+      if (typeof newText !== 'string' || !newText.trim()) return;
+      const msg = messageHistory.find((m) => m.id === id && m.username === username);
       if (msg) {
         msg.message = newText;
         io.emit('edit message', { id, newText });
       }
     });
 
-    // Typing indicators
-    socket.on('typing', (username) => socket.broadcast.emit('typing', username));
-    socket.on('stop typing', (username) => socket.broadcast.emit('stop typing', username));
-
-    socket.on('disconnect', () => {
-      if (socket.username) {
-        users = users.filter((u) => u.id !== socket.id);
-        io.emit('user list', users.map((u) => ({ username: u.username, avatar: u.avatar })));
-        io.emit('notification', `${socket.username} left the chat`);
+    socket.on('delete message', (id) => {
+      const idx = messageHistory.findIndex((m) => m.id === id && m.username === username);
+      if (idx !== -1) {
+        messageHistory.splice(idx, 1);
+        io.emit('delete message', id);
       }
-      console.log('User disconnected:', socket.id);
     });
 
-    // Sanitized broadcast variant (kept from the original server; unused by
-    // the current frontend, slated for cleanup when sockets are refactored).
-    socket.on('sendMessage', (msg) => {
-      const text = msg && msg.text ? String(msg.text).trim() : '';
-      if (!text) return;
-      if (text.length > MAX_MESSAGE_LENGTH) {
-        socket.emit('messageError', { reason: 'Message too long' });
-        return;
+    // --- Typing indicators (broadcast the trusted username) ---
+    socket.on('typing', () => socket.broadcast.emit('typing', username));
+    socket.on('stop typing', () => socket.broadcast.emit('stop typing', username));
+
+    // --- Presence: clean up on disconnect ---
+    socket.on('disconnect', () => {
+      const entry = online.get(username);
+      if (entry) {
+        entry.sockets.delete(socket.id);
+        if (entry.sockets.size === 0) {
+          online.delete(username);
+          io.emit('notification', `${username} left the chat`);
+        }
       }
-      const message = {
-        id: Date.now(),
-        user: msg.user,
-        text: escapeHtml(text),
-        ts: Date.now(),
-      };
-      io.emit('message', message);
+      io.emit('user list', onlineList());
     });
   });
 }
