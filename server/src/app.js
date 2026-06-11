@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const authRoutes = require('./routes/authRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

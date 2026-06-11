@@ -65,7 +65,9 @@ public/           # frontend (HTML/CSS/JS — React client coming soon)
 
 ## API
 - `POST /api/auth/register` — create an account
-- `POST /api/auth/login` — log in (returns a session token)
+- `POST /api/auth/login` — log in (returns a JWT)
+- `GET  /api/auth/me` — current user (requires `Authorization: Bearer <token>`)
+- `GET  /api/messages?before=&limit=` — paginated message history (auth required)
 - `GET  /api/health` — health check
 
 ## Usage
@@ -87,8 +89,7 @@ public/           # frontend (HTML/CSS/JS — React client coming soon)
 - Secrets live in `.env` (gitignored) and are never committed.
 
 ## Notes
-- **User accounts persist in MongoDB.**
-- **Messages are currently in-memory** and reset on server restart (database persistence is in progress).
+- **User accounts and messages persist in MongoDB.**
 - **For development/demo use** (not production-ready yet).
 
 ## Customization
