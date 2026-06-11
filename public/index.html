@@ -498,7 +498,7 @@
         return;
       }
       try {
-        const res = await fetch('/register', {
+        const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, username, password, confirmPassword })
@@ -528,7 +528,7 @@
         return;
       }
       try {
-        const res = await fetch('/login', {
+        const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier, password })

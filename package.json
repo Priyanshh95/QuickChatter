@@ -2,10 +2,10 @@
   "name": "quickchatter",
   "version": "1.0.0",
   "description": "A full-stack real-time chat app using Socket.IO with instant messaging and live communication support.",
-  "main": "server.js",
+  "main": "server/src/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server/src/index.js",
+    "dev": "nodemon server/src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -28,12 +28,10 @@
   "homepage": "https://github.com/Priyanshh95/QuickChatter#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "body-parser": "^1.20.3",
     "dotenv": "^17.4.2",
     "express": "^5.1.0",
     "mongoose": "^8.16.4",
-    "socket.io": "^4.8.1",
-    "uuid": "^9.0.0"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

@@ -1,11 +1,12 @@
 # QuickChatter
 
-A modern, real-time chat application built with Node.js, Express, and Socket.IO, featuring a clean, responsive HTML/CSS/JS frontend.
+A modern, real-time chat application built with Node.js, Express, Socket.IO, and MongoDB, featuring a clean, responsive frontend. *(A React client is on the way.)*
 
 ## Features
 
 - **Real-time messaging** with Socket.IO
-- **User authentication** (Sign Up, Login, Logout)
+- **User authentication** (Sign Up, Login, Logout) backed by MongoDB
+- **Passwords hashed with bcrypt**
 - **Session management** (sessionStorage)
 - **User avatars** (random emoji)
 - **Emoji picker** for messages
@@ -16,15 +17,12 @@ A modern, real-time chat application built with Node.js, Express, and Socket.IO,
 - **User list** sidebar (shows online users)
 - **Message history** (last 20 messages shown to new users)
 - **Responsive, modern UI** (mobile and desktop)
-- **No browser autofill** on auth/chat forms
-- **Persistent user accounts** (stored in `users.json`)
-- **In-memory message storage** (reset on server restart)
-
 
 ## Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v14+ recommended)
+- [Node.js](https://nodejs.org/) (v18+ recommended)
+- A [MongoDB](https://www.mongodb.com/atlas) database (a free Atlas cluster works great)
 
 ### Installation
 1. **Clone the repository:**
@@ -36,22 +34,39 @@ A modern, real-time chat application built with Node.js, Express, and Socket.IO,
    ```sh
    npm install
    ```
-   - For security features:
+3. **Configure environment variables:**
    ```sh
-   npm install bcryptjs
+   cp .env.example .env
    ```
+   Then edit `.env` and set your `MONGODB_URI` (see `.env.example` for all values).
 
 ### Running the App
 ```sh
-node server.js
+npm run dev    # development (auto-reload via nodemon)
+npm start      # production
 ```
-
 - The app will be available at [http://localhost:3000](http://localhost:3000)
 
-### File Structure
-- `server.js` — Main backend (Express + Socket.IO)
-- `public/` — Frontend HTML, CSS, JS
-- `users.json` — User credentials (auto-created)
+### Project Structure
+```
+server/
+  src/
+    config/       # MongoDB connection
+    models/       # Mongoose schemas (User, Room, Message)
+    controllers/  # request handlers (auth)
+    routes/       # Express routers (/api/auth)
+    socket/       # Socket.IO event handlers
+    utils/        # helpers (avatar)
+    app.js        # Express app setup
+    index.js      # entry point
+public/           # frontend (HTML/CSS/JS — React client coming soon)
+.env.example      # environment variable template
+```
+
+## API
+- `POST /api/auth/register` — create an account
+- `POST /api/auth/login` — log in (returns a session token)
+- `GET  /api/health` — health check
 
 ## Usage
 - **Sign Up** with a unique username and email
@@ -63,21 +78,18 @@ node server.js
 
 ## Technology Stack
 - **Backend:** Node.js, Express, Socket.IO
-- **Frontend:** HTML, CSS, JavaScript (no frameworks)
-- **Storage:**
-  - User accounts: `users.json` (local file)
-  - Messages: In-memory (not persistent)
+- **Database:** MongoDB (Mongoose)
+- **Frontend:** HTML, CSS, JavaScript *(React client in progress)*
 
-## Security improvements added
-- Passwords are now hashed with bcrypt (via bcryptjs) before being saved to users.json.
-- Basic input validation added to auth endpoints.
-- Messages are sanitized/escaped on the server and rendered as plain text on the client to prevent XSS; a maximum message length is enforced.
+## Security
+- Passwords are hashed with bcrypt (via bcryptjs) before being stored in MongoDB.
+- Input validation on auth endpoints.
+- Secrets live in `.env` (gitignored) and are never committed.
 
 ## Notes
-- **No database required** — user data is stored in a local file
-- **Messages are not saved** after server restarts
-- **For development/demo use** (not production-ready)
+- **User accounts persist in MongoDB.**
+- **Messages are currently in-memory** and reset on server restart (database persistence is in progress).
+- **For development/demo use** (not production-ready yet).
 
 ## Customization
-- You can change the emoji set, UI colors, or add new features easily in `public/index.html` and `server.js`.
-
+- You can change the emoji set, UI colors, or add features in `public/index.html` and the modules under `server/src/`.

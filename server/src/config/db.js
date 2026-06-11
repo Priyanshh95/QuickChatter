@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
  * Connect to MongoDB using the MONGODB_URI environment variable.
  *
  * During the migration phase the app can still boot without a database
- * (the legacy in-memory/file flow keeps working), so a missing URI logs a
+ * (the legacy in-memory flow keeps working), so a missing URI logs a
  * warning instead of crashing. Once the app fully depends on MongoDB this
  * should be hardened to exit the process on failure.
  */
