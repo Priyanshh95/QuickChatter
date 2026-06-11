@@ -9,6 +9,16 @@ jobs:
   server:
     name: Server tests
     runs-on: ubuntu-latest
+    env:
+      # Skip mongodb-memory-server's binary download during npm ci; tests use
+      # the MongoDB service container below instead.
+      MONGOMS_DISABLE_POSTINSTALL: '1'
+      MONGODB_URI_TEST: mongodb://localhost:27017/quickchatter_test
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

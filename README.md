@@ -1,101 +1,120 @@
 # QuickChatter
 
-A modern, real-time chat application built with Node.js, Express, Socket.IO, and MongoDB, featuring a clean, responsive frontend. *(A React client is on the way.)*
+![CI](https://github.com/Priyanshh95/QuickChatter/actions/workflows/ci.yml/badge.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-18-20232A?logo=react&logoColor=61DAFB)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
+![License](https://img.shields.io/badge/license-ISC-blue)
+
+A full-stack, real-time chat application: **channels**, **direct messages**, presence, typing
+indicators, emoji, and dark mode — built on the MERN stack with JWT-authenticated WebSockets.
+
+> **Stack:** React (Vite) · Node.js · Express · Socket.IO · MongoDB (Mongoose) · JWT + bcrypt
+
+## Screenshots
+
+<!-- Add screenshots/GIFs here, e.g. ./docs/login.png and ./docs/chat.png -->
+_Run it locally (below) to see the live UI — light & dark themes._
 
 ## Features
 
-- **Real-time messaging** with Socket.IO
-- **User authentication** (Sign Up, Login, Logout) backed by MongoDB
-- **Passwords hashed with bcrypt**
-- **Session management** (sessionStorage)
-- **User avatars** (random emoji)
-- **Emoji picker** for messages
-- **Typing indicator**
-- **Join/leave notifications**
-- **Message timestamps** (12-hour am/pm)
-- **Message editing and deletion** (for your own messages)
-- **User list** sidebar (shows online users)
-- **Message history** (last 20 messages shown to new users)
-- **Responsive, modern UI** (mobile and desktop)
+- 🔐 **Auth** — register/login with bcrypt-hashed passwords and JWTs
+- 💬 **Real-time messaging** over authenticated Socket.IO
+- #️⃣ **Channels** and 1:1 **direct messages** with access control
+- 🟢 **Presence** — live online list, multi-tab aware
+- ✍️ **Typing indicators**, per room
+- ✏️ **Edit / delete** your own messages (soft delete)
+- 🗄️ **Persistent history** in MongoDB with cursor pagination
+- 😀 **Emoji picker** and 🌙 **dark mode**
+- 📱 Responsive layout
 
-## Getting Started
+## Architecture
+
+```
+QuickChatter/
+├── server/             # Express + Socket.IO + MongoDB API
+│   └── src/
+│       ├── config/  models/  controllers/  routes/
+│       ├── middleware/   # JWT auth, error handling
+│       ├── services/     # rooms, messages, default room
+│       ├── socket/       # authenticated realtime handlers
+│       ├── app.js        # Express app (serves the built client in prod)
+│       └── index.js      # entry point
+├── client/             # React + Vite single-page app
+│   └── src/
+│       ├── context/  components/  hooks/  pages/  api/  lib/
+├── Dockerfile          # multi-stage build (client → server runtime)
+├── docker-compose.yml  # app + MongoDB
+└── .github/workflows/  # CI (server tests, client build + tests)
+```
+
+## Getting Started (development)
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18+ recommended)
+- [Node.js](https://nodejs.org/) v20+
 - A [MongoDB](https://www.mongodb.com/atlas) database (a free Atlas cluster works great)
 
-### Installation
-1. **Clone the repository:**
-   ```sh
-   git clone <your-repo-url>
-   cd QuickChatter
-   ```
-2. **Install dependencies:**
-   ```sh
-   npm install
-   ```
-3. **Configure environment variables:**
-   ```sh
-   cp .env.example .env
-   ```
-   Then edit `.env` and set your `MONGODB_URI` (see `.env.example` for all values).
-
-### Running the App
+### Setup
 ```sh
-npm run dev    # development (auto-reload via nodemon)
-npm start      # production
-```
-- The app will be available at [http://localhost:3000](http://localhost:3000)
+# 1. install backend deps
+npm install
 
-### Project Structure
+# 2. install client deps
+cd client && npm install && cd ..
+
+# 3. configure env
+cp .env.example .env      # then set MONGODB_URI and JWT_SECRET
 ```
-server/
-  src/
-    config/       # MongoDB connection
-    models/       # Mongoose schemas (User, Room, Message)
-    controllers/  # request handlers (auth)
-    routes/       # Express routers (/api/auth)
-    socket/       # Socket.IO event handlers
-    utils/        # helpers (avatar)
-    app.js        # Express app setup
-    index.js      # entry point
-public/           # frontend (HTML/CSS/JS — React client coming soon)
-.env.example      # environment variable template
+
+### Run (two terminals)
+```sh
+npm run dev               # backend → http://localhost:3000
+cd client && npm run dev  # client  → http://localhost:5173
 ```
+Open **http://localhost:5173**. The Vite dev server proxies `/api` and `/socket.io` to the backend.
+
+## Run with Docker
+
+Spins up the app **and** a MongoDB instance:
+```sh
+JWT_SECRET=$(openssl rand -hex 32) docker compose up --build
+```
+Then open **http://localhost:3000** (Express serves the built React client in production).
+
+## Testing
+
+```sh
+npm test                  # backend — Jest + supertest (in-memory MongoDB)
+cd client && npm test     # client  — Vitest + Testing Library
+```
+CI runs both suites on every push and pull request.
 
 ## API
+
 All `/api/*` routes except auth require `Authorization: Bearer <token>`.
-- `POST /api/auth/register` — create an account
-- `POST /api/auth/login` — log in (returns a JWT)
-- `GET  /api/auth/me` — current user
-- `GET  /api/rooms` — list channels + your direct messages
-- `POST /api/rooms` — create a public channel
-- `POST /api/rooms/dm` — start (or reuse) a DM with `{ username }`
-- `GET  /api/rooms/:roomId/messages?before=&limit=` — paginated room history
-- `GET  /api/messages?before=&limit=` — default-room history (back-compat)
-- `GET  /api/health` — health check
 
-## Usage
-- **Sign Up** with a unique username and email
-- **Login** with your username or email
-- **Chat** in real time with all connected users
-- **Edit/Delete** your own messages
-- **See who is online** in the sidebar
-- **Use emojis** and see typing indicators
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/api/auth/register` | Create an account |
+| POST | `/api/auth/login` | Log in (returns a JWT) |
+| GET | `/api/auth/me` | Current user |
+| GET | `/api/rooms` | List channels + your DMs |
+| POST | `/api/rooms` | Create a public channel |
+| POST | `/api/rooms/dm` | Start/reuse a DM (`{ username }`) |
+| GET | `/api/rooms/:roomId/messages` | Paginated room history (`before`, `limit`) |
+| GET | `/api/health` | Health check |
 
-## Technology Stack
-- **Backend:** Node.js, Express, Socket.IO
-- **Database:** MongoDB (Mongoose)
-- **Frontend:** HTML, CSS, JavaScript *(React client in progress)*
+**Socket events:** `join room`, `leave room`, `chat message`, `edit message`,
+`delete message`, `typing` / `stop typing` → server emits `room history`,
+`chat message`, `user list`, `notification`, etc.
 
-## Security
-- Passwords are hashed with bcrypt (via bcryptjs) before being stored in MongoDB.
-- Input validation on auth endpoints.
-- Secrets live in `.env` (gitignored) and are never committed.
+## Deployment
 
-## Notes
-- **User accounts and messages persist in MongoDB.**
-- **For development/demo use** (not production-ready yet).
+- **Docker host:** build the image (`docker build -t quickchatter .`) and run with
+  `MONGODB_URI`, `JWT_SECRET`, and `PORT` set.
+- **Render:** the included [`render.yaml`](./render.yaml) blueprint deploys the Docker
+  image — set `MONGODB_URI` in the dashboard; `JWT_SECRET` is generated.
 
-## Customization
-- You can change the emoji set, UI colors, or add features in `public/index.html` and the modules under `server/src/`.
+## License
+
+ISC © Priyanshu Bansal

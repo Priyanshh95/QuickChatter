@@ -1,0 +1,15 @@
+# Render.com blueprint — deploy the Docker image as a web service.
+# Set MONGODB_URI (e.g. your MongoDB Atlas connection string) in the dashboard.
+services:
+  - type: web
+    name: quickchatter
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
