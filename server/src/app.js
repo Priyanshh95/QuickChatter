@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const roomRoutes = require('./routes/roomRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -15,7 +16,8 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/messages', messageRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/messages', messageRoutes); // default-room history (back-compat)
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

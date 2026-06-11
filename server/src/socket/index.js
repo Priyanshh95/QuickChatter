@@ -2,6 +2,7 @@ const socketAuth = require('./auth');
 const Message = require('../models/Message');
 const { getDefaultRoom } = require('../services/defaultRoom');
 const { createMessage, getMessages } = require('../services/messageService');
+const roomService = require('../services/roomService');
 const { serialize, formatTime } = require('../utils/messageView');
 
 const MAX_MESSAGE_LENGTH = 1000;
@@ -18,7 +19,7 @@ function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     const { id: userId, username, avatar } = socket.user;
 
-    // --- Presence: register this connection ---
+    // --- Presence (global) ---
     const existing = online.get(username);
     if (existing) {
       existing.sockets.add(socket.id);
@@ -28,9 +29,31 @@ function registerSocketHandlers(io) {
     }
     io.emit('user list', onlineList());
 
-    // --- Register event listeners synchronously (BEFORE any await) so a
-    //     message the client fires immediately on connect is never missed. ---
+    // --- Listeners (registered synchronously, before any await) ---
 
+    // Open a room: validate access, join its socket.io room, send its history.
+    socket.on('join room', async (roomId, ack) => {
+      try {
+        const room = await roomService.getRoomById(roomId);
+        if (!room || !roomService.canAccess(room, userId)) {
+          if (typeof ack === 'function') ack({ error: 'Access denied' });
+          return;
+        }
+        socket.join(room._id.toString());
+        const { messages } = await getMessages({ roomId: room._id, limit: 20 });
+        socket.emit('room history', { roomId: room._id.toString(), messages: messages.map(serialize) });
+        if (typeof ack === 'function') ack({ ok: true });
+      } catch (err) {
+        console.error('join room error:', err.message);
+        if (typeof ack === 'function') ack({ error: 'Could not join room' });
+      }
+    });
+
+    socket.on('leave room', (roomId) => {
+      if (roomId) socket.leave(roomId.toString());
+    });
+
+    // New message: validate access, persist, broadcast to that room only.
     socket.on('chat message', async (data) => {
       const text = typeof data?.message === 'string' ? data.message.trim() : '';
       if (!text) return;
@@ -39,10 +62,20 @@ function registerSocketHandlers(io) {
         return;
       }
       try {
-        const room = await getDefaultRoom();
+        let room;
+        if (data?.roomId) {
+          room = await roomService.getRoomById(data.roomId);
+          if (!room || !roomService.canAccess(room, userId)) {
+            socket.emit('message error', { reason: 'Access denied' });
+            return;
+          }
+        } else {
+          room = await getDefaultRoom();
+        }
         const msg = await createMessage({ roomId: room._id, senderId: userId, text });
-        io.emit('chat message', {
+        io.to(room._id.toString()).emit('chat message', {
           id: msg._id.toString(),
+          roomId: room._id.toString(),
           username, // trusted identity from the JWT
           avatar,
           message: msg.text,
@@ -54,6 +87,7 @@ function registerSocketHandlers(io) {
       }
     });
 
+    // Edit (author only) — broadcast to the message's room.
     socket.on('edit message', async ({ id, newText } = {}) => {
       const text = typeof newText === 'string' ? newText.trim() : '';
       if (!text) return;
@@ -63,24 +97,26 @@ function registerSocketHandlers(io) {
         msg.text = text;
         msg.editedAt = new Date();
         await msg.save();
-        io.emit('edit message', { id, newText: text });
+        io.to(msg.room.toString()).emit('edit message', { id, newText: text });
       } catch (err) {
         console.error('edit message error:', err.message);
       }
     });
 
+    // Delete (soft, author only) — broadcast to the message's room.
     socket.on('delete message', async (id) => {
       try {
         const msg = await Message.findById(id);
         if (!msg || msg.deleted || msg.sender.toString() !== userId) return;
         msg.deleted = true;
         await msg.save();
-        io.emit('delete message', id);
+        io.to(msg.room.toString()).emit('delete message', id);
       } catch (err) {
         console.error('delete message error:', err.message);
       }
     });
 
+    // Typing indicators (kept global for now; per-room polish comes with the UI)
     socket.on('typing', () => socket.broadcast.emit('typing', username));
     socket.on('stop typing', () => socket.broadcast.emit('stop typing', username));
 
@@ -96,14 +132,21 @@ function registerSocketHandlers(io) {
       io.emit('user list', onlineList());
     });
 
-    // --- Replay recent history from the database (async, after listeners) ---
+    // --- Initial: auto-join General + this user's DM rooms, replay General. ---
     (async () => {
       try {
-        const room = await getDefaultRoom();
-        const { messages } = await getMessages({ roomId: room._id, limit: 20 });
+        const general = await getDefaultRoom();
+        socket.join(general._id.toString());
+
+        const rooms = await roomService.listRoomsForUser(userId);
+        rooms.forEach((r) => {
+          if (r.isDirect) socket.join(r._id.toString());
+        });
+
+        const { messages } = await getMessages({ roomId: general._id, limit: 20 });
         socket.emit('message history', messages.map(serialize));
       } catch (err) {
-        console.error('history load error:', err.message);
+        console.error('init rooms error:', err.message);
         socket.emit('message history', []);
       }
     })();

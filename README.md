@@ -64,10 +64,15 @@ public/           # frontend (HTML/CSS/JS — React client coming soon)
 ```
 
 ## API
+All `/api/*` routes except auth require `Authorization: Bearer <token>`.
 - `POST /api/auth/register` — create an account
 - `POST /api/auth/login` — log in (returns a JWT)
-- `GET  /api/auth/me` — current user (requires `Authorization: Bearer <token>`)
-- `GET  /api/messages?before=&limit=` — paginated message history (auth required)
+- `GET  /api/auth/me` — current user
+- `GET  /api/rooms` — list channels + your direct messages
+- `POST /api/rooms` — create a public channel
+- `POST /api/rooms/dm` — start (or reuse) a DM with `{ username }`
+- `GET  /api/rooms/:roomId/messages?before=&limit=` — paginated room history
+- `GET  /api/messages?before=&limit=` — default-room history (back-compat)
 - `GET  /api/health` — health check
 
 ## Usage
