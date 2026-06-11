@@ -15,4 +15,9 @@ async function getDefaultRoom() {
   return cached;
 }
 
-module.exports = { getDefaultRoom };
+// Test helper: clear the cached room so the suite can reset between cases.
+function __resetForTests() {
+  cached = null;
+}
+
+module.exports = { getDefaultRoom, __resetForTests };
