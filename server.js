@@ -1,3 +1,5 @@
+require('dotenv').config({ quiet: true });
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -7,6 +9,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const connectDB = require('./config/db');
 
 const app = express();
 
@@ -251,6 +254,10 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB (logs a warning and continues if MONGODB_URI is unset)
+connectDB();
+
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}/`);
 });
