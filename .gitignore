@@ -1,2 +1,24 @@
+# Dependencies
 node_modules/
-.env 
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Legacy file-based user store (never commit real credentials)
+users.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build output
+dist/
+build/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
