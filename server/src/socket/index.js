@@ -116,9 +116,13 @@ function registerSocketHandlers(io) {
       }
     });
 
-    // Typing indicators (kept global for now; per-room polish comes with the UI)
-    socket.on('typing', () => socket.broadcast.emit('typing', username));
-    socket.on('stop typing', () => socket.broadcast.emit('stop typing', username));
+    // Typing indicators, scoped to the room the user is typing in.
+    socket.on('typing', (roomId) => {
+      if (roomId) socket.to(roomId.toString()).emit('typing', { username, roomId: roomId.toString() });
+    });
+    socket.on('stop typing', (roomId) => {
+      if (roomId) socket.to(roomId.toString()).emit('stop typing', { username, roomId: roomId.toString() });
+    });
 
     socket.on('disconnect', () => {
       const entry = online.get(username);
