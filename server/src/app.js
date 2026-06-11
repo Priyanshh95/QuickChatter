@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const authRoutes = require('./routes/authRoutes');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -16,5 +17,8 @@ app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Central error handler (must be registered last)
+app.use(errorHandler);
 
 module.exports = app;

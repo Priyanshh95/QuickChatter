@@ -1,85 +1,77 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const User = require('../models/User');
 const { randomAvatar } = require('../utils/avatar');
+const { signToken } = require('../utils/token');
+const ApiError = require('../utils/ApiError');
+const asyncHandler = require('../utils/asyncHandler');
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 const SALT_ROUNDS = 10;
 
-/**
- * POST /api/auth/register
- * Creates a user with a bcrypt-hashed password in MongoDB.
- */
-async function register(req, res) {
-  try {
-    const { email, username, password, confirmPassword } = req.body || {};
+/** POST /api/auth/register — create a user with a bcrypt-hashed password. */
+const register = asyncHandler(async (req, res) => {
+  const { email, username, password, confirmPassword } = req.body || {};
 
-    if (!email || !username || !password || !confirmPassword) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-    if (!EMAIL_RE.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-    if (password !== confirmPassword) {
-      return res.status(400).json({ error: 'Passwords do not match' });
-    }
-
-    const exists = await User.findOne({
-      $or: [{ username }, { email: email.toLowerCase() }],
-    });
-    if (exists) {
-      return res.status(409).json({ error: 'Username or email already exists' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const user = await User.create({ username, email, passwordHash, avatar: randomAvatar() });
-
-    return res.status(201).json({ success: true, username: user.username, avatar: user.avatar });
-  } catch (err) {
-    // Handle the rare duplicate-key race between findOne and create
-    if (err && err.code === 11000) {
-      return res.status(409).json({ error: 'Username or email already exists' });
-    }
-    console.error('register error:', err);
-    return res.status(500).json({ error: 'Server error' });
+  if (!email || !username || !password || !confirmPassword) {
+    throw new ApiError(400, 'All fields are required');
   }
-}
-
-/**
- * POST /api/auth/login
- * Verifies credentials with bcrypt and returns a session token.
- * NOTE: the token is a temporary random string for now; it is replaced
- * with a signed JWT in the next commit.
- */
-async function login(req, res) {
-  try {
-    const { identifier, password } = req.body || {};
-
-    if (!identifier || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    const user = await User.findOne({
-      $or: [{ username: identifier }, { email: identifier.toLowerCase() }],
-    });
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = crypto.randomBytes(24).toString('hex');
-    return res.json({ success: true, token, username: user.username, avatar: user.avatar });
-  } catch (err) {
-    console.error('login error:', err);
-    return res.status(500).json({ error: 'Server error' });
+  if (!EMAIL_RE.test(email)) {
+    throw new ApiError(400, 'Invalid email format');
   }
-}
+  if (username.trim().length < 3) {
+    throw new ApiError(400, 'Username must be at least 3 characters');
+  }
+  if (password.length < 6) {
+    throw new ApiError(400, 'Password must be at least 6 characters');
+  }
+  if (password !== confirmPassword) {
+    throw new ApiError(400, 'Passwords do not match');
+  }
 
-module.exports = { register, login };
+  const exists = await User.findOne({
+    $or: [{ username }, { email: email.toLowerCase() }],
+  });
+  if (exists) {
+    throw new ApiError(409, 'Username or email already exists');
+  }
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const user = await User.create({ username, email, passwordHash, avatar: randomAvatar() });
+
+  res.status(201).json({ success: true, username: user.username, avatar: user.avatar });
+});
+
+/** POST /api/auth/login — verify credentials and return a signed JWT. */
+const login = asyncHandler(async (req, res) => {
+  const { identifier, password } = req.body || {};
+
+  if (!identifier || !password) {
+    throw new ApiError(400, 'All fields are required');
+  }
+
+  const user = await User.findOne({
+    $or: [{ username: identifier }, { email: identifier.toLowerCase() }],
+  });
+  if (!user) {
+    throw new ApiError(401, 'Invalid credentials');
+  }
+
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!ok) {
+    throw new ApiError(401, 'Invalid credentials');
+  }
+
+  const token = signToken({ id: user._id.toString(), username: user.username });
+  res.json({ success: true, token, username: user.username, avatar: user.avatar });
+});
+
+/** GET /api/auth/me — return the currently authenticated user. */
+const me = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+  res.json({ user }); // toJSON transform hides passwordHash
+});
+
+module.exports = { register, login, me };
